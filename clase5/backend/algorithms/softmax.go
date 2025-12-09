@@ -48,7 +48,7 @@ func softmaxRows(scores *mat.Dense) *mat.Dense {
 		row := scores.RawRowView(i)
 		outRow := out.RawRowView(i)
 
-		// max per row
+		// max per row // argmax
 		maxVal := row[0]
 		for k := 1; k < c; k++ {
 			if row[k] > maxVal {
@@ -94,8 +94,11 @@ func (m *SoftmaxRegression) forward(X *mat.Dense) (*mat.Dense, *mat.Dense) {
 }
 
 // Fit trains the model on X (n x d) and y (n,).
+// Entrenar el modelo
 func (m *SoftmaxRegression) Fit(X *mat.Dense, y []int) {
+	// X es el vector de entrada que nosotros tenemos
 	nSamples, nFeatures := X.Dims()
+	// n muestras y n features
 	if nSamples == 0 {
 		log.Fatal("Fit: X is empty")
 	}
@@ -104,12 +107,21 @@ func (m *SoftmaxRegression) Fit(X *mat.Dense, y []int) {
 	}
 
 	// number of classes = max(y) + 1
+	//
 	nClasses := 0
 	for _, yi := range y {
 		if yi+1 > nClasses {
 			nClasses = yi + 1
 		}
 	}
+
+	// inicializamos con un Random Seed los valores
+	// Weights -> b1, b2, ..., bd
+	// Bias -> b0
+	// y = WX + B
+	// W = Matriz de pesos
+	// X = vector de entrada
+	// B = Vector de Bias
 
 	// initialize W and B
 	rand.Seed(time.Now().UnixNano())
@@ -124,10 +136,22 @@ func (m *SoftmaxRegression) Fit(X *mat.Dense, y []int) {
 	if m.B == nil {
 		m.B = mat.NewVecDense(nClasses, nil)
 	}
-
+	// El objeto recibe K labels (puede recibir cualquier cantida )
+	// El objeto tambien recibe n features (cualquier cantidad)
+	// y = {bajo, medio, alto} -> {0,1,2}
+	// x = {feature1, feature2, feature3, ..., featureN}
 	// one-hot labels
+	// one-hot encoding de las etiquetas
+	// este modelo recibe las labels normales
+	// este modelo SI recibe las etiquetas normales
+	// y = {amarillo, rojo, azul} -> {0,1,2}
 	Y := oneHotDense(y, nSamples, nClasses)
 
+	// Gradient Descent
+	// Algunos otros gradientes que nos permiten saber
+	// hacia donde mover los pesos
+	// dW, db
+	// iter = epochs
 	for iter := 0; iter < m.NIter; iter++ {
 		_, probs := m.forward(X) // probs: (n x K)
 
@@ -161,6 +185,7 @@ func (m *SoftmaxRegression) Fit(X *mat.Dense, y []int) {
 		db := mat.NewVecDense(nClasses, dbData)
 
 		// update W and B
+		// W = W - lr * dW
 		var scaledDW mat.Dense
 		scaledDW.Scale(m.Lr, dW)
 		m.W.Sub(m.W, &scaledDW)
@@ -217,7 +242,7 @@ func (m *SoftmaxRegression) Accuracy(X *mat.Dense, y []int) float64 {
 }
 
 // ===== Model persistence to disk =====
-
+// ARTEFACTO.
 type softmaxModelFile struct {
 	NFeatures int       `json:"n_features"`
 	NClasses  int       `json:"n_classes"`
@@ -299,8 +324,11 @@ func LoadSoftmaxRegression(path string) (*SoftmaxRegression, error) {
 // ===== Minimal example (not used by API, just for reference) =====
 
 func Example() {
+	// CSV sintetico
+	// pasarlo a un vector de entrada
 	// simple 3-class, 2D dataset (same idea as original main)
 	Xdata := []float64{
+		// Caracteristica 1
 		-1.0, -1.2,
 		-0.8, -0.9,
 		-1.2, -1.1,
@@ -319,11 +347,11 @@ func Example() {
 		2, 2, 2,
 	}
 
+	// implementar estos metodos en un objetos
+	// implementar
 	X := mat.NewDense(9, 2, Xdata)
-
 	model := NewSoftmaxRegression(0.1, 2000, 1e-3)
 	model.Fit(X, y)
-
 	acc := model.Accuracy(X, y)
 	fmt.Printf("training accuracy: %.4f\n", acc)
 }
