@@ -2,7 +2,7 @@ package main
 
 import "fmt"
 
-func main() {
+func train() {
 	if err := TrainSoftmaxBronco(); err != nil {
 		fmt.Println("TrainSoftmaxBronco error:", err)
 	}

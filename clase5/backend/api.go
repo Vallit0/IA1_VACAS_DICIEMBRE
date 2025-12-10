@@ -173,11 +173,27 @@ func llamarHuggingFace(texto string) (interface{}, error) {
 	return resultado, nil
 }
 
+// limpiar datos hasta llegar aca
+type vectorEntrada struct {
+	a_asma              float32
+	a_bronquitis        float32
+	a_enfisema          float32
+	a_apnea             float32
+	a_fibromialgia      float32
+	a_migranas          float32
+	a_reflujo           float32
+	n_sintomas          int
+	n_cronicas          int
+	redflag_pecho       bool
+	redflag_respiracion bool
+	tiene_cronicas      bool
+}
+
 // cambiar funcion luego
-func xd() {
+func main() {
 	app := fiber.New()
 	// Golog - Levanta un objeto que se llama Maquina de Inferencia
-	//
+	// instanciar vector de ent
 	// resolver problema de CORS
 	app.Use(func(c *fiber.Ctx) error {
 		c.Set("Access-Control-Allow-Origin", "*")
@@ -190,7 +206,8 @@ func xd() {
 
 		return c.Next()
 	})
-
+	// vecotres todo el proceso el proceso
+	// variables globales
 	programa := cargarProlog("./prolog/conocimiento.pl")
 	// Cargar las inferencias
 	m := golog.NewMachine()
@@ -321,14 +338,17 @@ func xd() {
 			fmt.Println("Error al llamar a HuggingFace:", err)
 			return c.Status(500).JSON(fiber.Map{"error": "Error al consultar HuggingFace", "detalle": err.Error()})
 		}
+
+		return c.JSON(fiber.Map{
+			"resultado": respuesta,
+		})
 		// 1. Jalar los datos y meterlos al vector de entrada
+		// BERT = vector_a
 		// 2. Analizar el texto y hacer feature Engineering
-		// vector_a := analizarTexto(req.Texto)
-		//
+		// vector_b := analizarTexto(req.Texto)
 		// 3. Pasar el vector al modelo softmaxModel.Predict
 		// y_pred := softmaxModel.Predict(vector_a)
 		// 4. Recuperamos todos los datos del informe
-
 		// 5. Pasamos a Prolog
 		// 6. Devolvemos la respuesta al cliente
 		// 7. Ustedes aca proponen una accion con el RPA
