@@ -321,7 +321,17 @@ func xd() {
 			fmt.Println("Error al llamar a HuggingFace:", err)
 			return c.Status(500).JSON(fiber.Map{"error": "Error al consultar HuggingFace", "detalle": err.Error()})
 		}
+		// 1. Jalar los datos y meterlos al vector de entrada
+		// 2. Analizar el texto y hacer feature Engineering
+		// vector_a := analizarTexto(req.Texto)
+		//
+		// 3. Pasar el vector al modelo softmaxModel.Predict
+		// y_pred := softmaxModel.Predict(vector_a)
+		// 4. Recuperamos todos los datos del informe
 
+		// 5. Pasamos a Prolog
+		// 6. Devolvemos la respuesta al cliente
+		// 7. Ustedes aca proponen una accion con el RPA
 		return c.JSON(fiber.Map{
 			"resultado": respuesta,
 		})
