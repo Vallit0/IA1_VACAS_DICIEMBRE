@@ -189,6 +189,18 @@ type vectorEntrada struct {
 	tiene_cronicas      bool
 }
 
+// Funcion que sea util para analizar el texto
+// Diccionario con los sintomas y enfermedades cronicas
+func analizarTexto(texto string) vectorEntrada {
+	// Hacer el analisis del texto
+	// Agregar un for para recorrer el texto y contar sintomas
+
+	// Aqui va el analisis del texto
+	var vector vectorEntrada
+	// Logica de analisis
+	return vector
+}
+
 // cambiar funcion luego
 func main() {
 	app := fiber.New()
@@ -353,8 +365,7 @@ func main() {
 		return c.JSON(fiber.Map{
 			"resultado": respuesta,
 		})
-		// 1. Jalar los datos y meterlos al vector de entrada
-		// BERT = vector_a
+
 		// 2. Analizar el texto y hacer feature Engineering
 		// vector_b := analizarTexto(req.Texto)
 		// 3. Pasar el vector al modelo softmaxModel.Predict
