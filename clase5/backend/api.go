@@ -193,7 +193,8 @@ type vectorEntrada struct {
 func main() {
 	app := fiber.New()
 	// Golog - Levanta un objeto que se llama Maquina de Inferencia
-	// instanciar vector de ent
+	// instanciar Vector de Entrada
+	var entrada vectorEntrada
 	// resolver problema de CORS
 	app.Use(func(c *fiber.Ctx) error {
 		c.Set("Access-Control-Allow-Origin", "*")
@@ -330,6 +331,7 @@ func main() {
 		if req.Texto == "" {
 			return c.Status(400).JSON(fiber.Map{"error": "El campo 'texto' es requerido."})
 		}
+		var textoEntrada = req.Texto
 		// le agregamos al texto la <mask> del modelo
 		req.Texto = req.Texto + " padezco de <mask>."
 
@@ -338,6 +340,15 @@ func main() {
 			fmt.Println("Error al llamar a HuggingFace:", err)
 			return c.Status(500).JSON(fiber.Map{"error": "Error al consultar HuggingFace", "detalle": err.Error()})
 		}
+		// tomar respuesta y asignarlo al vector de entrada
+		entrada.a_asma = respuesta.(map[string]interface{})["asma"].(float32)
+		entrada.a_bronquitis = respuesta.(map[string]interface{})["bronquitis"].(float32)
+		entrada.a_enfisema = respuesta.(map[string]interface{})["enfisema"].(float32)
+		entrada.a_apnea = respuesta.(map[string]interface{})["apnea"].(float32)
+		entrada.a_fibromialgia = respuesta.(map[string]interface{})["fibromialgia"].(float32)
+		entrada.a_migranas = respuesta.(map[string]interface{})["migrañas"].(float32)
+		entrada.a_reflujo = respuesta.(map[string]interface{})["reflujo"].(float32)
+		// Recorra el texto y vaya generando los insights
 
 		return c.JSON(fiber.Map{
 			"resultado": respuesta,
