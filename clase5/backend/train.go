@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
+	"strconv"
 
 	"gonum.org/v1/gonum/mat"
 
@@ -147,6 +148,130 @@ func exportPointsCSV(path string, X *mat.Dense, y []int, probs *mat.Dense) error
 		if err := w.Write(record); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+// exportLossCSV escribe el historial de pérdida a un CSV.
+// Formato columnas: iter, loss
+func exportLossCSV(path string, loss []float64) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	w := csv.NewWriter(f)
+	defer w.Flush()
+
+	if err := w.Write([]string{"iter", "loss"}); err != nil {
+		return err
+	}
+
+	for i, v := range loss {
+		record := []string{
+			strconv.Itoa(i),
+			fmt.Sprintf("%f", v),
+		}
+		if err := w.Write(record); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// TrainSoftmaxBronco entrena el modelo Softmax con el dataset
+// bronco_dataset.csv y guarda el modelo y la curva de pérdida.
+func TrainSoftmaxBronco() error {
+	f, err := os.Open("./algorithms/bronco_dataset.csv")
+	if err != nil {
+		return fmt.Errorf("no se pudo abrir bronco_dataset.csv: %w", err)
+	}
+	defer f.Close()
+
+	r := csv.NewReader(f)
+	records, err := r.ReadAll()
+	if err != nil {
+		return fmt.Errorf("error leyendo bronco_dataset.csv: %w", err)
+	}
+	if len(records) < 2 {
+		return fmt.Errorf("bronco_dataset.csv no tiene suficientes filas")
+	}
+
+	header := records[0]
+	if len(header) < 2 {
+		return fmt.Errorf("bronco_dataset.csv debe tener al menos una feature y la columna de etiqueta")
+	}
+
+	// asumimos que la etiqueta es la columna 'urgencia'
+	labelIdx := -1
+	for i, h := range header {
+		if h == "urgencia" {
+			labelIdx = i
+			break
+		}
+	}
+	if labelIdx == -1 {
+		return fmt.Errorf("no se encontró la columna 'urgencia' en bronco_dataset.csv")
+	}
+
+	nFeatures := len(header) - 1
+	nSamples := len(records) - 1
+
+	Xdata := make([]float64, 0, nSamples*nFeatures)
+	y := make([]int, 0, nSamples)
+
+	for _, row := range records[1:] {
+		if len(row) != len(header) {
+			return fmt.Errorf("todas las filas deben tener %d columnas", len(header))
+		}
+
+		for j, val := range row {
+			if j == labelIdx {
+				lbl, err := strconv.Atoi(val)
+				if err != nil {
+					return fmt.Errorf("no se pudo convertir etiqueta '%s' a int: %w", val, err)
+				}
+				y = append(y, lbl)
+			} else {
+				v, err := strconv.ParseFloat(val, 64)
+				if err != nil {
+					return fmt.Errorf("no se pudo convertir valor '%s' a float64: %w", val, err)
+				}
+				Xdata = append(Xdata, v)
+			}
+		}
+	}
+
+	if len(y) != nSamples {
+		return fmt.Errorf("se esperaban %d etiquetas y se obtuvieron %d", nSamples, len(y))
+	}
+	if len(Xdata) != nSamples*nFeatures {
+		return fmt.Errorf("dimension de X inconsistente: esperados %d valores, obtenidos %d", nSamples*nFeatures, len(Xdata))
+	}
+
+	X := mat.NewDense(nSamples, nFeatures, Xdata)
+
+	model := algorithms.NewSoftmaxRegression(0.1, 3000, 1e-3)
+	model.Fit(X, y)
+
+	acc := model.Accuracy(X, y)
+	fmt.Printf("Accuracy entrenamiento (bronco): %.4f\n", acc)
+
+	// aseguramos carpeta weights y guardamos modelo compatible con la API
+	_ = os.MkdirAll("./weights", 0o755)
+	if err := model.SaveToFile(algorithms.DefaultSoftmaxModelPath); err != nil {
+		return fmt.Errorf("error al guardar el modelo Softmax: %w", err)
+	}
+
+	// exportamos curva de pérdida para graficar
+	if len(model.LossHistory) > 0 {
+		if err := exportLossCSV("./weights/softmax_bronco_loss.csv", model.LossHistory); err != nil {
+			return fmt.Errorf("error al exportar curva de pérdida: %w", err)
+		}
+		fmt.Println("Se generó: weights/softmax_bronco_loss.csv (iter, loss)")
 	}
 
 	return nil

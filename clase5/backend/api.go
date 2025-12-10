@@ -94,7 +94,7 @@ type SoftmaxPredictRequest struct {
 
 var softmaxModel *algorithms.SoftmaxRegression
 
-const softmaxModelPath = "./weights/softmax_model.json"
+const softmaxModelPath = algorithms.DefaultSoftmaxModelPath
 
 // helpers para convertir entre [][]float64 y *mat.Dense
 func slice2DToDense(x [][]float64) (*mat.Dense, error) {

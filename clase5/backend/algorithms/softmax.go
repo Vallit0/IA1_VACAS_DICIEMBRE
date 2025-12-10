@@ -12,6 +12,8 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
+const DefaultSoftmaxModelPath = "./weights/softmax_model.json"
+
 // SoftmaxRegression implements multinomial logistic regression (softmax).
 type SoftmaxRegression struct {
 	W         *mat.Dense    // (nFeatures x nClasses)
@@ -19,6 +21,7 @@ type SoftmaxRegression struct {
 	Lr        float64       // Learning Rate
 	NIter     int           // Number of iterations
 	RegLambda float64       // Regularization strength
+	LossHistory []float64   // Training loss per iteration
 }
 
 // NewSoftmaxRegression creates a new model with hyperparameters.
@@ -147,6 +150,9 @@ func (m *SoftmaxRegression) Fit(X *mat.Dense, y []int) {
 	// y = {amarillo, rojo, azul} -> {0,1,2}
 	Y := oneHotDense(y, nSamples, nClasses)
 
+	// Reset loss history for this training run
+	m.LossHistory = nil
+
 	// Gradient Descent
 	// Algunos otros gradientes que nos permiten saber
 	// hacia donde mover los pesos
@@ -154,6 +160,36 @@ func (m *SoftmaxRegression) Fit(X *mat.Dense, y []int) {
 	// iter = epochs
 	for iter := 0; iter < m.NIter; iter++ {
 		_, probs := m.forward(X) // probs: (n x K)
+
+		// Compute cross-entropy loss with optional L2 regularization
+		loss := 0.0
+		for i := 0; i < nSamples; i++ {
+			pRow := probs.RawRowView(i)
+			yRow := Y.RawRowView(i)
+			for k := 0; k < nClasses; k++ {
+				if yRow[k] == 1.0 {
+					p := pRow[k]
+					if p < 1e-15 {
+						p = 1e-15
+					}
+					loss -= math.Log(p)
+				}
+			}
+		}
+		loss /= float64(nSamples)
+
+		if m.RegLambda > 0 {
+			rowsW, colsW := m.W.Dims()
+			regSum := 0.0
+			for i := 0; i < rowsW; i++ {
+				row := m.W.RawRowView(i)
+				for k := 0; k < colsW; k++ {
+					regSum += row[k] * row[k]
+				}
+			}
+			loss += 0.5 * m.RegLambda * regSum
+		}
+		m.LossHistory = append(m.LossHistory, loss)
 
 		// dScores = (probs - Y)/n
 		dScores := mat.NewDense(nSamples, nClasses, nil)
