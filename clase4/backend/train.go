@@ -13,19 +13,7 @@ import (
 // SoftmaxToyTest entrena el modelo Softmax con un dataset
 // muy simple de 3 clases en 2D y genera archivos CSV para
 // que puedas graficar los puntos y sus probabilidades.
-func TrainSoftmax() error {
-	///// Archivo de entrenamiento /////
-	// Tomar el CSV con el dataset que les comparti
-	// Pasarlo a Vectores de Gonum
-	// Entrenar el modelo con .fit
-	// guardar el modelo entrenado saveToFile
-
-	/// API /////
-	// crear el ednpoint con la importacion del modelo entrenado
-	// Pasarle el vector de entrada
-	// predecir con el modelo entrenado
-	// devolver la prediccion al cliente
-
+func SoftmaxToyTest() error {
 	// Dataset: 3 clases en 2D
 	// Clase 0: alrededor de (-1, -1)
 	// Clase 1: alrededor de (0, 1)
@@ -92,7 +80,6 @@ func TrainSoftmax() error {
 // exportPointsCSV escribe X, y, y probabilidades a un CSV.
 // Formato columnas: x1, x2, y_true, y_pred, p0, p1, ..., pK
 func exportPointsCSV(path string, X *mat.Dense, y []int, probs *mat.Dense) error {
-
 	f, err := os.Create(path)
 	if err != nil {
 		return err
@@ -151,3 +138,4 @@ func exportPointsCSV(path string, X *mat.Dense, y []int, probs *mat.Dense) error
 
 	return nil
 }
+

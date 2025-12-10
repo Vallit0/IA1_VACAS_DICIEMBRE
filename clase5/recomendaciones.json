@@ -1,0 +1,14 @@
+{
+  "recomendaciones": [
+    {
+      "facultad": "Ingeniería",
+      "carrera": "Sistemas",
+      "match": 100.0
+    },
+    {
+      "facultad": "Ingeniería",
+      "carrera": "Mecánica",
+      "match": 66.66666666666666
+    }
+  ]
+}
