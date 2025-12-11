@@ -198,14 +198,42 @@ type featuresText struct {
 	tiene_cronicas      bool
 }
 
+// keywords en un slice
+var sintomasKeywords = []string{
+	"pecho",
+	"tos",
+	"flema",
+	"silbido",
+	"falta de aire",
+	"ahogo",
+	"dificultad para respirar",
+	"opresion",
+	"dolor al respirar",
+}
+
+var cronicasKeywords = []string{
+	"asma",
+	"epoc",
+	"bronquitis cronica",
+	"fibrosis pulmonar",
+	"enfisema",
+}
+
 // Funcion que sea util para analizar el texto
 // Diccionario con los sintomas y enfermedades cronicas
 func analizarTexto(texto string) featuresText {
 	// Hacer el analisis del texto
 	// Agregar un for para recorrer el texto y contar sintomas
-	// en esta funcion vamos a analizar el texto
-	// Aqui va el analisis del texto
+	// en esta funcion vamos a analizar el texto y devolver un struct featuresText
+	// Agregamos valores dummy al vector
 	var vector featuresText
+	vector.n_sintomas = 3
+	vector.n_cronicas = 1
+	vector.redflag_pecho = true
+	vector.redflag_respiracion = false
+	vector.tiene_cronicas = true
+	// Aqui va el analisis del texto
+
 	// Logica de analisis
 	return vector
 }
@@ -371,14 +399,17 @@ func main() {
 		entrada.a_reflujo = respuesta.(map[string]interface{})["reflujo"].(float32)
 		// Recorra el texto y vaya generando los insights
 		// llamamos a la funcion analizarTexto
-		proyecto := analizarTexto(textoEntrada)
+		vectorsito_con_texto := analizarTexto(textoEntrada)
 		// luego de tener el vector proyecto
 		// trasladamos de proyecto a entrada
-		entrada.n_sintomas = proyecto.n_sintomas
-		entrada.n_cronicas = proyecto.n_cronicas
-		entrada.redflag_pecho = proyecto.redflag_pecho
-		entrada.redflag_respiracion = proyecto.redflag_respiracion
-		entrada.tiene_cronicas = proyecto.tiene_cronicas
+		entrada.n_sintomas = vectorsito_con_texto.n_sintomas
+		entrada.n_cronicas = vectorsito_con_texto.n_cronicas
+		entrada.redflag_pecho = vectorsito_con_texto.redflag_pecho
+		entrada.redflag_respiracion = vectorsito_con_texto.redflag_respiracion
+		entrada.tiene_cronicas = vectorsito_con_texto.tiene_cronicas
+
+		// ya tenemos nuestro vector de entrada completo
+
 		return c.JSON(fiber.Map{
 			"resultado": respuesta,
 		})
