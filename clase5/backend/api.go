@@ -189,14 +189,23 @@ type vectorEntrada struct {
 	tiene_cronicas      bool
 }
 
+// estructura para el analisis de texto
+type featuresText struct {
+	n_sintomas          int
+	n_cronicas          int
+	redflag_pecho       bool
+	redflag_respiracion bool
+	tiene_cronicas      bool
+}
+
 // Funcion que sea util para analizar el texto
 // Diccionario con los sintomas y enfermedades cronicas
-func analizarTexto(texto string) vectorEntrada {
+func analizarTexto(texto string) featuresText {
 	// Hacer el analisis del texto
 	// Agregar un for para recorrer el texto y contar sintomas
-
+	// en esta funcion vamos a analizar el texto
 	// Aqui va el analisis del texto
-	var vector vectorEntrada
+	var vector featuresText
 	// Logica de analisis
 	return vector
 }
@@ -361,7 +370,15 @@ func main() {
 		entrada.a_migranas = respuesta.(map[string]interface{})["migrañas"].(float32)
 		entrada.a_reflujo = respuesta.(map[string]interface{})["reflujo"].(float32)
 		// Recorra el texto y vaya generando los insights
-
+		// llamamos a la funcion analizarTexto
+		proyecto := analizarTexto(textoEntrada)
+		// luego de tener el vector proyecto
+		// trasladamos de proyecto a entrada
+		entrada.n_sintomas = proyecto.n_sintomas
+		entrada.n_cronicas = proyecto.n_cronicas
+		entrada.redflag_pecho = proyecto.redflag_pecho
+		entrada.redflag_respiracion = proyecto.redflag_respiracion
+		entrada.tiene_cronicas = proyecto.tiene_cronicas
 		return c.JSON(fiber.Map{
 			"resultado": respuesta,
 		})
