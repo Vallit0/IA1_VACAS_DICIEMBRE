@@ -400,6 +400,7 @@ func main() {
 	})
 
 	// Diagnostico de Texto Medico
+	// {"texto": "tengo tos y dificultad para respirar"}
 	app.Post("/diagnostico", func(c *fiber.Ctx) error {
 		var req DiagnosticoRequest
 		if err := c.BodyParser(&req); err != nil {
@@ -436,6 +437,8 @@ func main() {
 		entrada.redflag_respiracion = vectorsito_con_texto.redflag_respiracion
 		entrada.tiene_cronicas = vectorsito_con_texto.tiene_cronicas
 		// Convertimos el VectorEntrada a algo que pueda usar el modelo Softmax
+		// Aca ya tienen todos los datos recopilados en una estructura
+
 		// 1. Crear matriz Gonum con los datos del vector de entrada
 		Xdata := []float64{
 			float64(entrada.a_asma),
@@ -446,17 +449,22 @@ func main() {
 			float64(entrada.a_migranas),
 			float64(entrada.a_reflujo),
 			float64(entrada.n_sintomas),
-			float64(entrada.n_cronicas),
+			float64(entrada.n_cronicas), // Puede que de error el parseo
 		}
 		// aunque mapeamos a
 		Xmat := mat.NewDense(1, len(Xdata), Xdata)
 
 		// ingresamos al modelo Softmax
+		// Cargar el modelo
 		// 1. Crear la matriz Gonum con los datos del vector de entrada
 		inferencias_softmax := softmaxModel.Predict(Xmat)
 		// luego adaptamos los resultados al esquema de entrada de Prolog
 		var urgencia, enfermedad, cronica, pecho, respiracion string
 		// usando la funcion recomendarMedicacion
+
+		// Switch o puede ser un if
+		// resp_si-> verificar booleano
+		// ESTO NO ESTA BIEN
 		switch inferencias_softmax[0] {
 		case 0:
 			urgencia = "baja"
@@ -494,18 +502,17 @@ func main() {
 			pecho,
 			respiracion,
 		)
+
+		// A partir del modelo de ML = urgencia del caso
+		// La descripcion cliente de sus padecimientos
+		// Medicamentos que no puede tomar.
+
 		fmt.Println("Resultados de la recomendación:", resultados)
-		// preparar la respuesta para devolverla al cliente
-
-		// ahora le pasamos a prolog todos los datos
-
-		// 2. Asegurarse que el modelo Softmax esté cargado
-		// 3. Pasar el vector al modelo softmaxModel.Predict
-
-		// 4. Recuperamos todos los datos del informe
-		// 5. Pasamos a Prolog
-		// 6. Devolvemos la respuesta al cliente
-		// 7. Ustedes aca proponen una accion con el RPA
+		// ustedes implementan la parte del RPA
+		// Enviar un correo
+		// si es urgente se envia un correo a una persona
+		// si respiratorio se meta a un excel e ingrese los datos
+		// inicie un meet instantaneo
 		return c.JSON(fiber.Map{
 			"resultado": respuesta,
 		})
