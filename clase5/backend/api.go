@@ -15,39 +15,84 @@ import (
 	"unmatch/backend/algorithms"
 )
 
-func recomendarCarreras(m golog.Machine, aptitud, habilidad1, interes1, habilidad2, interes2 string) []CarreraRecomendada {
-	query := "carrera(Fac, Carr, Apt, Hab, Int)."
+// estructura que abstrae el MedicamentoRecomendado
+type MedicamentoRecomendado struct {
+	Urgencia    string
+	Enfermedad  string
+	Cronica     string
+	Pecho       string
+	Respiracion string
+	Medicamento string
+	Match       float64
+}
+
+func recomendarMedicamentos(
+	m golog.Machine,
+	urgencia, enfermedad, cronica, pecho, respiracion string,
+) []MedicamentoRecomendado {
+
+	// Usamos la regla de inferencia, no directamente la base de hechos.
+	query := "recomendar_medicamento(Urg, Enf, Cron, Pecho, Resp, Med)."
 	solutions := m.ProveAll(query)
 
-	results := []CarreraRecomendada{}
+	results := []MedicamentoRecomendado{}
 
 	for _, sol := range solutions {
-		apt := sol.ByName_("Apt").String()
-		hab := sol.ByName_("Hab").String()
-		ints := sol.ByName_("Int").String()
+		urg := sol.ByName_("Urg").String()
+		enf := sol.ByName_("Enf").String()
+		cron := sol.ByName_("Cron").String()
+		pech := sol.ByName_("Pecho").String()
+		resp := sol.ByName_("Resp").String()
+		med := sol.ByName_("Med").String()
 
 		matchCount := 0
-		if apt == aptitud {
+
+		// 1: urgencia
+		if urg == urgencia {
 			matchCount++
 		}
-		if hab == habilidad1 || hab == habilidad2 {
+		// 2: enfermedad
+		if enf == enfermedad {
 			matchCount++
 		}
-		if ints == interes1 || ints == interes2 {
+		// 3: cronicidad
+		if cron == cronica {
 			matchCount++
 		}
-		if habilidad1 == ints || habilidad2 == apt || interes1 == hab || interes2 == hab {
-			matchCount++ // peso extra si hay cruce interesante
+		// 4: pecho
+		if pech == pecho {
+			matchCount++
+		}
+		// 5: respiración
+		if resp == respiracion {
+			matchCount++
 		}
 
-		matchPercent := float64(matchCount) / 5.0 * 100.0
+		// 6: “peso extra” por combinación peligrosa (ejemplos)
+		// alta urgencia + problema respiratorio
+		if urgencia == "alta" && respiracion == "resp_si" {
+			matchCount++
+		}
+		// enfermedad pulmonar crónica + respiración comprometida
+		if (enfermedad == "asma" || enfermedad == "bronquitis" || enfermedad == "enfisema") &&
+			cronica == "cronica_si" && respiracion == "resp_si" {
+			matchCount++
+		}
 
-		results = append(results, CarreraRecomendada{
-			Facultad: sol.ByName_("Fac").String(),
-			Carrera:  sol.ByName_("Carr").String(),
-			Match:    matchPercent,
+		// Tenemos 5 condiciones base + 2 extras posibles = divisor 7.0
+		matchPercent := float64(matchCount) / 7.0 * 100.0
+
+		results = append(results, MedicamentoRecomendado{
+			Urgencia:    urg,
+			Enfermedad:  enf,
+			Cronica:     cron,
+			Pecho:       pech,
+			Respiracion: resp,
+			Medicamento: med,
+			Match:       matchPercent,
 		})
 	}
+
 	return results
 }
 
@@ -274,23 +319,6 @@ func main() {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Servidor UniMatch funcionando 🧠")
 	})
-
-	app.Post("/recomendar", func(c *fiber.Ctx) error {
-		var perfil PerfilEstudiante
-		if err := c.BodyParser(&perfil); err != nil {
-			return c.Status(400).SendString("Error de entrada.")
-		}
-		fmt.Println("Perfil recibido:", perfil)
-		resultados := recomendarCarreras(m, perfil.Aptitud, perfil.Habilidad, perfil.Interes, perfil.Interes2, perfil.Habilidad2)
-		if len(resultados) == 0 {
-			return c.JSON(fiber.Map{"mensaje": "No se encontraron coincidencias."})
-		}
-
-		return c.JSON(fiber.Map{
-			"recomendaciones": resultados,
-		})
-	})
-
 	// Entrenar modelo Softmax con datos enviados por el cliente
 	app.Post("/softmax/train", func(c *fiber.Ctx) error {
 		var req SoftmaxTrainRequest
@@ -407,17 +435,73 @@ func main() {
 		entrada.redflag_pecho = vectorsito_con_texto.redflag_pecho
 		entrada.redflag_respiracion = vectorsito_con_texto.redflag_respiracion
 		entrada.tiene_cronicas = vectorsito_con_texto.tiene_cronicas
+		// Convertimos el VectorEntrada a algo que pueda usar el modelo Softmax
+		// 1. Crear matriz Gonum con los datos del vector de entrada
+		Xdata := []float64{
+			float64(entrada.a_asma),
+			float64(entrada.a_bronquitis),
+			float64(entrada.a_enfisema),
+			float64(entrada.a_apnea),
+			float64(entrada.a_fibromialgia),
+			float64(entrada.a_migranas),
+			float64(entrada.a_reflujo),
+			float64(entrada.n_sintomas),
+			float64(entrada.n_cronicas),
+		}
+		// aunque mapeamos a
+		Xmat := mat.NewDense(1, len(Xdata), Xdata)
 
-		// ya tenemos nuestro vector de entrada completo
+		// ingresamos al modelo Softmax
+		// 1. Crear la matriz Gonum con los datos del vector de entrada
+		inferencias_softmax := softmaxModel.Predict(Xmat)
+		// luego adaptamos los resultados al esquema de entrada de Prolog
+		var urgencia, enfermedad, cronica, pecho, respiracion string
+		// usando la funcion recomendarMedicacion
+		switch inferencias_softmax[0] {
+		case 0:
+			urgencia = "baja"
+			enfermedad = "ninguna"
+			cronica = "cronica_no"
+		case 1:
+			urgencia = "media"
+			enfermedad = "asma"
+			cronica = "cronica_si"
+		case 2:
+			urgencia = "alta"
+			enfermedad = "bronquitis"
+			cronica = "cronica_si"
+		default:
+			urgencia = "baja"
+			enfermedad = "ninguna"
+			cronica = "cronica_no"
+		}
+		if entrada.redflag_pecho {
+			pecho = "pecho_si"
+		} else {
+			pecho = "pecho_no"
+		}
+		if entrada.redflag_respiracion {
+			respiracion = "resp_si"
+		} else {
+			respiracion = "resp_no"
+		}
+		// 2. Llamar a recomendarMedicacion
+		resultados := recomendarMedicamentos(
+			m,
+			urgencia,
+			enfermedad,
+			cronica,
+			pecho,
+			respiracion,
+		)
+		fmt.Println("Resultados de la recomendación:", resultados)
+		// preparar la respuesta para devolverla al cliente
 
-		return c.JSON(fiber.Map{
-			"resultado": respuesta,
-		})
+		// ahora le pasamos a prolog todos los datos
 
-		// 2. Analizar el texto y hacer feature Engineering
-		// vector_b := analizarTexto(req.Texto)
+		// 2. Asegurarse que el modelo Softmax esté cargado
 		// 3. Pasar el vector al modelo softmaxModel.Predict
-		// y_pred := softmaxModel.Predict(vector_a)
+
 		// 4. Recuperamos todos los datos del informe
 		// 5. Pasamos a Prolog
 		// 6. Devolvemos la respuesta al cliente
